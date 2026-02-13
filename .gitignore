@@ -1,0 +1,19 @@
+# Common
+node_modules/
+.DS_Store
+.env
+.env.local
+.env.*.local
+dist/
+build/
+*.log
+
+# Backend specific
+cloudapp-backend/uploads/
+cloudapp-backend/temp/
+
+# Frontend specific
+frontend/.vercel/
+frontend/.next/
+frontend/node_modules/
+frontend/dist/
