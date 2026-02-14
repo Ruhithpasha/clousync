@@ -132,7 +132,7 @@ const LandingPage = () => {
           className="mt-20 w-full max-w-4xl aspect-[16/9] bg-white rounded-[40px] shadow-2xl relative overflow-hidden p-4 border-8 border-white"
         >
           <img 
-            src="/src/assets/cloudsync_landing_hero.png" 
+            src="/cloudsync_landing_hero.png" 
             alt="Dashboard" 
             className="w-full h-full object-cover rounded-[32px]"
           />
@@ -160,7 +160,7 @@ const LandingPage = () => {
                 </div>
                 <h2 className="text-4xl font-extrabold text-[#000B2B] mb-6 leading-tight">Manage every <br /> aspect of your <br /> cloud storage.</h2>
               </div>
-              <p className="text-[#000B2B]/80 font-semibold text-lg max-w-sm">
+              <p className="text-[#000B2B]/80 font-semibold text-lg max-sm">
                 Control everything from a single minimal dashboard. No clutter, just performance.
               </p>
             </motion.div>
