@@ -12,7 +12,8 @@ import {
   Plus,
   Cloud,
   ChevronRight,
-  User
+  User,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -20,27 +21,7 @@ import { supabase } from '../lib/supabaseClient';
 const DashboardLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
-  const { user } = useAuth();
-  const [profile, setProfile] = useState(null);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-        const res = await fetch("/api/profile", {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setProfile(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch profile in layout", err);
-      }
-    };
-    fetchProfile();
-  }, [user]);
+  const { user, profile } = useAuth();
 
   const menuItems = [
     { icon: <LayoutDashboard size={20} />, label: "Overview", path: "/cloudinary" },
@@ -48,6 +29,11 @@ const DashboardLayout = ({ children }) => {
     { icon: <FolderOpen size={20} />, label: "Albums", path: "/albums" },
     { icon: <Settings size={20} />, label: "Settings", path: "/settings" },
   ];
+
+  if (profile?.is_admin) {
+    menuItems.push({ icon: <ShieldCheck size={20} />, label: "Admin", path: "/admin" });
+  }
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

@@ -5,8 +5,10 @@ import AlbumDetail from './pages/AlbumDetail';
 import DashboardLayout from './components/DashboardLayout';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
+import AdminLoginPage from './pages/AdminLoginPage';
 import Settings from './pages/Settings';
 import ResetPassword from './pages/ResetPassword';
+import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
@@ -17,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/admin-auth" element={<AdminLoginPage />} />
           
           {/* Main Photo Gallery / Overview */}
           <Route 
@@ -64,6 +67,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardLayout><Settings /></DashboardLayout>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Admin Dashboard */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <DashboardLayout><AdminDashboard /></DashboardLayout>
               </ProtectedRoute>
             } 
           />

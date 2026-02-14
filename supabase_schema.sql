@@ -16,6 +16,7 @@ CREATE TABLE public.profiles (
   avatar_url TEXT,
   plan TEXT DEFAULT 'FREE' CHECK (plan IN ('FREE', 'PRO', 'SUPER')),
   storage_limit BIGINT DEFAULT 104857600, -- 100MB in bytes
+  is_admin BOOLEAN DEFAULT FALSE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

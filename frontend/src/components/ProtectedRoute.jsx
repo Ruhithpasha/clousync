@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+const ProtectedRoute = ({ children, adminOnly = false }) => {
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -14,6 +14,10 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (adminOnly && (!profile || !profile.is_admin)) {
+    return <Navigate to="/cloudinary" replace />;
   }
 
   return children;

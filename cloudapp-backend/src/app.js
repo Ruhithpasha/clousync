@@ -6,6 +6,7 @@ const fs = require("fs");
 const imageRoutes = require("./routes/imageRoutes");
 const albumRoutes = require("./routes/albumRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 const UPLOAD_DIR = path.join(__dirname, "../uploads");
@@ -43,6 +44,7 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 app.use("/", imageRoutes);
 app.use("/", albumRoutes);
 app.use("/", profileRoutes);
+app.use("/", adminRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

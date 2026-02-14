@@ -237,8 +237,14 @@ const AuthPage = () => {
           </div>
         </div>
 
-        {/* Home Button */}
-        <div className="mt-8 text-center">
+        {/* Admin Link & Home Button */}
+        <div className="mt-8 flex flex-col items-center gap-4">
+            <Link 
+              to="/admin-auth"
+              className="text-xs font-bold text-[#000B2B]/20 uppercase tracking-widest hover:text-[#FFC107] transition-colors"
+            >
+              Admin Portal Access
+            </Link>
             <button 
                 onClick={() => navigate('/')}
                 className="text-xs font-extrabold text-[#000B2B]/30 uppercase tracking-[0.2em] hover:text-[#000B2B] transition-colors"
