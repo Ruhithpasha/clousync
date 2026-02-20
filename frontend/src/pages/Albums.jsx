@@ -3,6 +3,8 @@ import { FolderPlus, Image as ImageIcon, MoreHorizontal, LayoutGrid, List, Alert
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { API_BASE_URL } from '../config';
+
 
 const Albums = () => {
   const [albums, setAlbums] = useState([]);
@@ -22,7 +24,8 @@ const Albums = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch("/api/albums", {
+      const response = await fetch(`${API_BASE_URL}/albums`, {
+
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
 
@@ -48,7 +51,8 @@ const Albums = () => {
       setCreating(true);
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await fetch("/api/albums", {
+      const response = await fetch(`${API_BASE_URL}/albums`, {
+
         method: "POST",
         headers: { 
           'Authorization': `Bearer ${session.access_token}`,

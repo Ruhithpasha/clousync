@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Image as ImageIcon, Download, Share2, CheckCircle2, MoreVertical, Plus, X, Search } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
+import { API_BASE_URL } from '../config';
+
 
 const AlbumDetail = () => {
   const { id } = useParams();
@@ -29,10 +31,11 @@ const AlbumDetail = () => {
 
       // Fetch images for this album, album details, and user library
       const [imgRes, albRes, libRes] = await Promise.all([
-        fetch(`/api/albums/${id}/images`, { headers }),
-        fetch(`/api/albums`, { headers }),
-        fetch(`/api/images`, { headers })
+        fetch(`${API_BASE_URL}/albums/${id}/images`, { headers }),
+        fetch(`${API_BASE_URL}/albums`, { headers }),
+        fetch(`${API_BASE_URL}/images`, { headers })
       ]);
+
 
       const imagesData = await imgRes.json();
       const albumsData = await albRes.json();
@@ -60,7 +63,8 @@ const AlbumDetail = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch("/api/images-bulk", {
+      const response = await fetch(`${API_BASE_URL}/images-bulk`, {
+
         method: "PUT",
         headers: {
           'Authorization': `Bearer ${session.access_token}`,

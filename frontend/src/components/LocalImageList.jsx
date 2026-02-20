@@ -1,6 +1,8 @@
 import React from "react";
+import { API_BASE_URL } from "../config";
 
-const BACKEND_URL = "http://localhost:3001";
+const BACKEND_URL = API_BASE_URL;
+
 
 const LocalImageList = ({ images }) => (
   <div>

@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { User, Mail, Shield, Bell, Save, CheckCircle2, AlertCircle, Upload, Search, Zap, ArrowRight } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
+import { API_BASE_URL } from '../config';
+
 
 const Settings = () => {
   const [profile, setProfile] = useState({ 
@@ -40,11 +42,12 @@ const Settings = () => {
       if (!session) return;
 
       const [profileRes, mfaRes] = await Promise.all([
-        fetch("/api/profile", {
+        fetch(`${API_BASE_URL}/profile`, {
             headers: { 'Authorization': `Bearer ${session.access_token}` }
         }),
         supabase.auth.mfa.listFactors()
       ]);
+
 
       if (!profileRes.ok) throw new Error("Failed to load profile");
       const data = await profileRes.json();
@@ -77,7 +80,8 @@ const Settings = () => {
       setMessage({ type: '', text: '' });
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await fetch("/api/profile", {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
+
         method: "PUT",
         headers: { 
           'Authorization': `Bearer ${session.access_token}`,
@@ -108,7 +112,8 @@ const Settings = () => {
       const formData = new FormData();
       formData.append('image', file);
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch(`${API_BASE_URL}/upload`, {
+
         method: "POST",
         headers: { 
           'Authorization': `Bearer ${session.access_token}`
@@ -209,7 +214,8 @@ const Settings = () => {
         setIsVerifying(true);
         const { data: { session } } = await supabase.auth.getSession();
         
-        const response = await fetch("/api/upgrade-plan", {
+        const response = await fetch(`${API_BASE_URL}/upgrade-plan`, {
+
             method: "POST",
             headers: { 
                 'Authorization': `Bearer ${session.access_token}`,

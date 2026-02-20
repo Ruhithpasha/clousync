@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
+import { API_BASE_URL } from '../config';
 import { 
   Users, 
   HardDrive, 
@@ -31,7 +32,7 @@ const AdminDashboard = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch('/api/admin/stats', {
+      const response = await fetch(`${API_BASE_URL}/admin/stats`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }

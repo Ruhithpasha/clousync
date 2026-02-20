@@ -15,6 +15,8 @@ import {
   Sparkles
 } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
+import { API_BASE_URL } from "../config";
+
 
 const getOptimizedImageUrl = (url) => {
   if (!url) return '';
@@ -52,9 +54,10 @@ const ImageUploader = () => {
 
       // Parallel fetch images and albums
       const [imgRes, albRes] = await Promise.all([
-        fetch("/api/images", { headers }),
-        fetch("/api/albums", { headers })
+        fetch(`${API_BASE_URL}/images`, { headers }),
+        fetch(`${API_BASE_URL}/albums`, { headers })
       ]);
+
 
       if (!imgRes.ok || !albRes.ok) throw new Error("Failed to sync with cloud");
 
@@ -67,7 +70,8 @@ const ImageUploader = () => {
       setAlbums(albumsData);
 
       // Fetch profile to check plan
-      const profRes = await fetch("/api/profile", { headers });
+      const profRes = await fetch(`${API_BASE_URL}/profile`, { headers });
+
       if (profRes.ok) {
         const profData = await profRes.json();
         setProfile(profData);
@@ -111,7 +115,8 @@ const ImageUploader = () => {
         formData.append("albumId", selectedAlbumId);
       }
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch(`${API_BASE_URL}/upload`, {
+
         method: "POST",
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -152,7 +157,8 @@ const ImageUploader = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch(`/api/images/${imageId}`, {
+      const response = await fetch(`${API_BASE_URL}/images/${imageId}`, {
+
         method: "PUT",
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -190,7 +196,8 @@ const ImageUploader = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch(`/api/images/${imageId}`, {
+      const response = await fetch(`${API_BASE_URL}/images/${imageId}`, {
+
         method: "DELETE",
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -220,7 +227,8 @@ const ImageUploader = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch(`/api/search-images?query=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${API_BASE_URL}/search-images?query=${encodeURIComponent(query)}`, {
+
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }

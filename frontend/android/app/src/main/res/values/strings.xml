@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">cloudsync</string>
+    <string name="title_activity_main">cloudsync</string>
+    <string name="package_name">com.cloudsync.app</string>
+    <string name="custom_url_scheme">com.cloudsync.app</string>
+</resources>
