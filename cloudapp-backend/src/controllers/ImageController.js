@@ -1,7 +1,11 @@
 const fs = require("fs");
 const ImageRepository = require("../repositories/ImageRepository");
 const { uploadImage, deleteImage } = require("../utils/cloudinaryUtils");
-const { generateImageTags, generateEmbedding } = require("../utils/aiUtils");
+const {
+  generateImageTags,
+  generateEmbedding,
+  classifyImageWithOllama,
+} = require("../utils/aiUtils");
 
 class ImageController {
   async upload(req, res) {
@@ -62,6 +66,23 @@ class ImageController {
       } catch (aiErr) {
         console.error(`[AI-DEBUG] Tagging failed:`, aiErr.message);
       }
+
+      // --- OLLAMA CLASSIFICATION ---
+      try {
+        console.log(`[AI-DEBUG] Attempting Ollama Classification...`);
+        const category = await classifyImageWithOllama(req.file.path);
+        if (category && category !== "Other") {
+          console.log(`[AI-DEBUG] Ollama Category: ${category}`);
+          // Add category as the first tag
+          tags = [category.toUpperCase(), ...tags];
+        }
+      } catch (ollamaErr) {
+        console.error(
+          `[AI-DEBUG] Ollama classification failed:`,
+          ollamaErr.message,
+        );
+      }
+      // ----------------------------
 
       if (profile?.plan === "SUPER") {
         try {

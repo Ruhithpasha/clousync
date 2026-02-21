@@ -80,6 +80,29 @@ async function generateImageTags(filePath, mimeType) {
   return ["AI-Processed"];
 }
 
+async function classifyImageWithOllama(filePath) {
+  try {
+    const imageData = Buffer.from(fs.readFileSync(filePath)).toString("base64");
+
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        model: "moondream",
+        prompt:
+          "Classify this image into exactly one of these categories: Nature, People, Documents, Architecture, Food, Technology, or Other. Return only the category name.",
+        images: [imageData],
+        stream: false,
+      }),
+    });
+
+    const result = await response.json();
+    return result.response.trim().replace(/[.]/g, "");
+  } catch (error) {
+    console.error("[Ollama] Classification failed:", error.message);
+    return "Other";
+  }
+}
+
 async function generateEmbedding(text) {
   const modelsToTry = ["text-embedding-004", "embedding-001"];
 
@@ -97,4 +120,8 @@ async function generateEmbedding(text) {
   return null;
 }
 
-module.exports = { generateImageTags, generateEmbedding };
+module.exports = {
+  generateImageTags,
+  generateEmbedding,
+  classifyImageWithOllama,
+};
