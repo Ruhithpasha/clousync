@@ -20,6 +20,27 @@ const AlbumDetail = () => {
   const [selectedLibraryIds, setSelectedLibraryIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [addingPhotos, setAddingPhotos] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const handleDownload = async (url, filename) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename || 'cloudsync-photo.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      setSuccessMsg("Download started! 📥");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err) {
+      console.error("Download error:", err);
+      window.open(url, '_blank');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -136,6 +157,20 @@ const AlbumDetail = () => {
         </button>
       </div>
 
+      {successMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-green-500 text-white p-4 rounded-2xl flex items-center gap-3 font-bold text-sm shadow-xl min-w-[300px]"
+          >
+              <CheckCircle2 size={18} />
+              {successMsg}
+              <button onClick={() => setSuccessMsg("")} className="ml-auto p-1 hover:bg-white/20 rounded-full transition-colors">
+                  <X size={14} />
+              </button>
+          </motion.div>
+      )}
+
       {images.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[60px] border-2 border-dashed border-[#000B2B]/5">
             <div className="w-24 h-24 bg-[#F7F7F7] rounded-full flex items-center justify-center mb-6">
@@ -165,9 +200,12 @@ const AlbumDetail = () => {
                     <div className="flex items-center justify-between">
                         <p className="text-white font-extrabold text-sm truncate">{image.original_name}</p>
                         <div className="flex gap-2">
-                            <button className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center text-white hover:bg-white hover:text-[#000B2B]">
-                                <Download size={14} />
-                            </button>
+                            <button 
+                               onClick={() => handleDownload(image.cloudinary_url, image.original_name)}
+                               className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center text-white hover:bg-white hover:text-[#000B2B] transition-all"
+                             >
+                                 <Download size={14} />
+                             </button>
                         </div>
                     </div>
                </div>

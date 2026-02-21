@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require("fs");
+const path = require("path");
 
 // Load dotenv just in case this util is used standalone
 require("dotenv").config();
@@ -80,25 +81,74 @@ async function generateImageTags(filePath, mimeType) {
   return ["AI-Processed"];
 }
 
-async function classifyImageWithOllama(filePath) {
+let pipeline;
+let clipPromise;
+
+/**
+ * Lazy loads the CLIP pipeline
+ */
+async function getCLIP() {
+  if (pipeline) return pipeline;
+  if (clipPromise) return clipPromise;
+
+  console.log(
+    "🚀 [CLIP] Initialization started (this may take a moment on first run)...",
+  );
+  const { pipeline: transformerPipeline } =
+    await import("@xenova/transformers");
+
+  clipPromise = transformerPipeline(
+    "zero-shot-image-classification",
+    "Xenova/clip-vit-base-patch32",
+  );
+  pipeline = await clipPromise;
+  console.log("✅ [CLIP] Model loaded and ready.");
+  return pipeline;
+}
+
+async function classifyImageWithCLIP(filePath) {
   try {
-    const imageData = Buffer.from(fs.readFileSync(filePath)).toString("base64");
+    if (!fs.existsSync(filePath)) {
+      console.error(`[CLIP] File not found: ${filePath}`);
+      return "Other";
+    }
 
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      body: JSON.stringify({
-        model: "moondream",
-        prompt:
-          "Classify this image into exactly one of these categories: Nature, People, Documents, Architecture, Food, Technology, or Other. Return only the category name.",
-        images: [imageData],
-        stream: false,
-      }),
-    });
+    const classifier = await getCLIP();
+    const categories = [
+      "Nature",
+      "People",
+      "Documents",
+      "Architecture",
+      "Food",
+      "Technology",
+      "Animals",
+      "Travel",
+      "Sports",
+      "Fashion",
+      "Art",
+      "Interiors",
+      "Vehicles",
+    ];
 
-    const result = await response.json();
-    return result.response.trim().replace(/[.]/g, "");
+    console.log(`\n--- 🤖 CLIP ANALYSIS START ---`);
+    console.log(`[CLIP] Processing: ${path.basename(filePath)}`);
+
+    const results = await classifier(filePath, categories);
+
+    // Sort results by score (highest first)
+    const topResult = results[0];
+    const rawScore = (topResult.score * 100).toFixed(1);
+
+    console.log(
+      `✅ [CLIP] TOP MATCH: ${topResult.label.toUpperCase()} (${rawScore}%)`,
+    );
+    console.log(`--- 🤖 CLIP ANALYSIS END ---\n`);
+
+    // Only return the category if the confidence is high enough (e.g. > 15%)
+    return topResult.score > 0.15 ? topResult.label : "Other";
   } catch (error) {
-    console.error("[Ollama] Classification failed:", error.message);
+    console.error("❌ [CLIP] Classification failed:", error.message);
+    console.log(`--- 🤖 CLIP ANALYSIS END ---\n`);
     return "Other";
   }
 }
@@ -123,5 +173,5 @@ async function generateEmbedding(text) {
 module.exports = {
   generateImageTags,
   generateEmbedding,
-  classifyImageWithOllama,
+  classifyImageWithCLIP,
 };

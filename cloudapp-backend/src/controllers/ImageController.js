@@ -4,8 +4,10 @@ const { uploadImage, deleteImage } = require("../utils/cloudinaryUtils");
 const {
   generateImageTags,
   generateEmbedding,
-  classifyImageWithOllama,
+  classifyImageWithCLIP,
 } = require("../utils/aiUtils");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET || "cloudsync_secure_share_key_2024";
 
 class ImageController {
   async upload(req, res) {
@@ -54,11 +56,10 @@ class ImageController {
       let tags = [];
       let embedding = null;
 
-      console.log(
-        `[AI-DEBUG] Starting AI checks for user: ${userId}, plan: ${profile?.plan}`,
-      );
+      console.log(`[AI-DEBUG] Starting CLIP AI Analysis for user: ${userId}`);
 
       // TEMPORARILY ENABLE FOR ALL PLANS TO VERIFY INTEGRATION
+      /* --- GEMINI TAGGING (DISABLED) ---
       try {
         console.log(`[AI-DEBUG] Attempting Gemini Tagging...`);
         tags = await generateImageTags(req.file.path, req.file.mimetype);
@@ -66,24 +67,24 @@ class ImageController {
       } catch (aiErr) {
         console.error(`[AI-DEBUG] Tagging failed:`, aiErr.message);
       }
+      ----------------------------------- */
 
-      // --- OLLAMA CLASSIFICATION ---
+      // --- CLIP CLASSIFICATION ---
       try {
-        console.log(`[AI-DEBUG] Attempting Ollama Classification...`);
-        const category = await classifyImageWithOllama(req.file.path);
+        const category = await classifyImageWithCLIP(req.file.path);
         if (category && category !== "Other") {
-          console.log(`[AI-DEBUG] Ollama Category: ${category}`);
           // Add category as the first tag
           tags = [category.toUpperCase(), ...tags];
         }
-      } catch (ollamaErr) {
+      } catch (clipErr) {
         console.error(
-          `[AI-DEBUG] Ollama classification failed:`,
-          ollamaErr.message,
+          `[AI-DEBUG] CLIP classification failed:`,
+          clipErr.message,
         );
       }
       // ----------------------------
 
+      /* --- GEMINI EMBEDDING (DISABLED) ---
       if (profile?.plan === "SUPER") {
         try {
           console.log(`[AI-DEBUG] Attempting Embedding...`);
@@ -100,6 +101,7 @@ class ImageController {
           console.error(`[AI-DEBUG] Embedding failed:`, embErr.message);
         }
       }
+      ------------------------------------- */
       // -------------------
 
       // 3. Save to DB
@@ -268,6 +270,52 @@ class ImageController {
     } catch (error) {
       console.error("ImageController Search Error:", error);
       res.status(500).json({ error: "Search failed", message: error.message });
+    }
+  }
+
+  async share(req, res) {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const image = await ImageRepository.findById(id, userId);
+      if (!image) return res.status(404).json({ error: "Image not found" });
+
+      // Generate a 24h token
+      const token = jwt.sign({ imageId: id, userId: userId }, JWT_SECRET, {
+        expiresIn: "24h",
+      });
+
+      res.json({ token, expiresIn: "24h" });
+    } catch (error) {
+      console.error("ImageController Share Error:", error);
+      res.status(500).json({ error: "Failed to generate share link" });
+    }
+  }
+
+  async resolveShare(req, res) {
+    try {
+      const { token } = req.params;
+      const decoded = jwt.verify(token, JWT_SECRET);
+
+      // Use admin repository access because this is a public link
+      const { supabaseAdmin } = require("../config/supabase");
+      const { data: image, error } = await supabaseAdmin
+        .from("images")
+        .select("*")
+        .eq("id", decoded.imageId)
+        .single();
+
+      if (error || !image)
+        return res.status(404).send("Link expired or image not found.");
+
+      // For debugging/analytics we could log the view here
+
+      // Redirect to the actual Cloudinary URL
+      res.redirect(image.cloudinary_url);
+    } catch (error) {
+      console.error("ImageController ResolveShare Error:", error);
+      res.status(403).send("This link has expired or is invalid.");
     }
   }
 }

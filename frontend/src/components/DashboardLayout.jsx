@@ -13,15 +13,19 @@ import {
   Cloud,
   ChevronRight,
   User,
-  ShieldCheck
+  ShieldCheck,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabaseClient';
 
 const DashboardLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
   const { user, profile } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
 
   const menuItems = [
     { icon: <LayoutDashboard size={20} />, label: "Overview", path: "/cloudinary" },
@@ -40,7 +44,7 @@ const DashboardLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7] font-['Plus_Jakarta_Sans'] flex overflow-hidden">
+    <div className="min-h-screen bg-[#F7F7F7] dark:bg-[#020617] font-['Plus_Jakarta_Sans'] flex overflow-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 bg-grid pointer-events-none opacity-40 z-0" />
 
@@ -149,17 +153,23 @@ const DashboardLayout = ({ children }) => {
         {/* Header */}
         <header className="flex justify-between items-center mb-12">
           <div>
-            <h2 className="text-4xl font-extrabold text-[#000B2B] tracking-tight mb-1">
+            <h2 className="text-4xl font-extrabold text-[#000B2B] dark:text-white tracking-tight mb-1">
               {menuItems.find(i => i.path === location.pathname)?.label || "Dashboard"}
             </h2>
-            <p className="text-[#000B2B]/40 font-bold uppercase tracking-widest text-xs">
+            <p className="text-[#000B2B]/40 dark:text-white/40 font-bold uppercase tracking-widest text-xs">
               Welcome back to your digital cloud
             </p>
           </div>
           
           <div className="flex gap-4">
-            <button className="bg-white p-3 rounded-2xl border border-[#000B2B]/5 shadow-soft hover:shadow-md transition-all">
-                <Menu className="w-6 h-6 text-[#000B2B]" />
+            <button 
+              onClick={toggleDarkMode}
+              className="bg-white dark:bg-[#1e293b] p-3 rounded-2xl border border-[#000B2B]/5 dark:border-white/5 shadow-soft hover:shadow-md transition-all text-[#000B2B] dark:text-white"
+            >
+              {isDarkMode ? <Sun className="w-6 h-6 text-[#FFC107]" /> : <Moon className="w-6 h-6" />}
+            </button>
+            <button className="bg-white dark:bg-[#1e293b] p-3 rounded-2xl border border-[#000B2B]/5 dark:border-white/5 shadow-soft hover:shadow-md transition-all">
+                <Menu className="w-6 h-6 text-[#000B2B] dark:text-white" />
             </button>
           </div>
         </header>

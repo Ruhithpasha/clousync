@@ -1,10 +1,19 @@
 import { motion } from 'framer-motion';
 import { Upload, Shield, Share2, ArrowRight, Menu, X, Plus, CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/cloudinary');
+    }
+  }, [user, loading, navigate]);
 
   const features = [
     {

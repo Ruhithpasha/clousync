@@ -45,4 +45,8 @@ router.put("/images-bulk", authenticateUser, ImageController.bulkUpdate);
 router.delete("/images/:id", authenticateUser, ImageController.delete);
 router.post("/restore/:filename", ImageController.restore);
 
+// Sharing System
+router.post("/images/:id/share", authenticateUser, ImageController.share);
+router.get("/s/:token", ImageController.resolveShare); // Publicly accessible
+
 module.exports = router;

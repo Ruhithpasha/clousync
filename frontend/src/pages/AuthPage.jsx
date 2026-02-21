@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
 import { Mail, Lock, User, ArrowRight, Upload } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -11,7 +13,14 @@ const AuthPage = () => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/cloudinary');
+    }
+  }, [user, authLoading, navigate]);
 
   // MFA Login states
   const [showMfa, setShowMfa] = useState(false);
@@ -53,6 +62,7 @@ const AuthPage = () => {
           email,
           password,
           options: {
+            emailRedirectTo: window.location.origin + '/auth',
             data: {
               username: username,
             }
@@ -60,12 +70,15 @@ const AuthPage = () => {
         });
         if (error) throw error;
         alert('Verification email sent! Please check your inbox.');
+        setIsLogin(true); // Switch to login mode so they can sign in after verifying
+        setLoading(false);
+        return;
       }
       navigate('/cloudinary');
     } catch (err) {
       setError(err.message);
     } finally {
-      if (!showMfa) setLoading(false);
+      if (!showMfa && isLogin) setLoading(false);
     }
   };
 
