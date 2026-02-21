@@ -41,7 +41,11 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 }
 
 // Routes
-app.use("/", imageRoutes);
+app.use("/api", imageRoutes);
+app.use("/api", albumRoutes);
+app.use("/api", profileRoutes);
+app.use("/api", adminRoutes);
+app.use("/", imageRoutes); // Keep original routes for backward compatibility
 app.use("/", albumRoutes);
 app.use("/", profileRoutes);
 app.use("/", adminRoutes);
