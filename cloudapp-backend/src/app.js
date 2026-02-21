@@ -14,7 +14,7 @@ const UPLOAD_DIR = path.join(__dirname, "../uploads");
 // Middleware
 app.use(
   cors({
-    origin: "*",
+    origin: ["http://localhost:3000", "https://cloudsync.publicvm.com"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",

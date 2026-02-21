@@ -20,4 +20,8 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    port: 3000,
+    allowedHosts: ["cloudsync.publicvm.com"],
+  },
 });
