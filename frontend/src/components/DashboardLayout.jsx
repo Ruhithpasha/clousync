@@ -11,15 +11,19 @@ import {
   X, 
   Plus,
   Cloud,
+  Sparkles,
   ChevronRight,
   User,
   ShieldCheck,
   Sun,
-  Moon
+  Moon,
+  Zap,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabaseClient';
+import OnboardingTour from './OnboardingTour';
 
 const DashboardLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -30,6 +34,9 @@ const DashboardLayout = ({ children }) => {
   const menuItems = [
     { icon: <LayoutDashboard size={20} />, label: "Overview", path: "/cloudinary" },
     { icon: <ImageIcon size={20} />, label: "Library", path: "/local" }, 
+    { icon: <Zap size={20} className="text-[#FFC107]" />, label: "AI Search", path: "/ai-search" },
+    { icon: <Heart size={20} className="text-pink-500" />, label: "Memories", path: "/memories" },
+    { icon: <Sparkles size={20} />, label: "Explore", path: "/explore" },
     { icon: <FolderOpen size={20} />, label: "Albums", path: "/albums" },
     { icon: <Settings size={20} />, label: "Settings", path: "/settings" },
   ];
@@ -176,6 +183,7 @@ const DashboardLayout = ({ children }) => {
 
         {children}
       </main>
+      <OnboardingTour />
     </div>
   );
 };

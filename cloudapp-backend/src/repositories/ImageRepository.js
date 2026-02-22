@@ -93,11 +93,17 @@ class ImageRepository {
     return true;
   }
 
-  async searchSemantic(embedding, matchThreshold = 0.5, matchCount = 10) {
+  async searchByEmbedding(
+    userId,
+    embedding,
+    matchThreshold = 0.25, // Adjusted for balanced discovery
+    matchCount = 15,
+  ) {
     const { data, error } = await supabaseAdmin.rpc("match_images", {
       query_embedding: embedding,
       match_threshold: matchThreshold,
       match_count: matchCount,
+      p_user_id: userId, // Pass userId explicitly
     });
 
     if (error) throw error;

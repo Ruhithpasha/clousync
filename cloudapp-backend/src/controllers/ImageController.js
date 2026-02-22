@@ -5,6 +5,8 @@ const {
   generateImageTags,
   generateEmbedding,
   classifyImageWithCLIP,
+  generateCLIPImageEmbedding,
+  generateCLIPTextEmbedding,
 } = require("../utils/aiUtils");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "cloudsync_secure_share_key_2024";
@@ -58,51 +60,31 @@ class ImageController {
 
       console.log(`[AI-DEBUG] Starting CLIP AI Analysis for user: ${userId}`);
 
-      // TEMPORARILY ENABLE FOR ALL PLANS TO VERIFY INTEGRATION
-      /* --- GEMINI TAGGING (DISABLED) ---
-      try {
-        console.log(`[AI-DEBUG] Attempting Gemini Tagging...`);
-        tags = await generateImageTags(req.file.path, req.file.mimetype);
-        console.log(`[AI-DEBUG] Successful tags:`, tags);
-      } catch (aiErr) {
-        console.error(`[AI-DEBUG] Tagging failed:`, aiErr.message);
-      }
-      ----------------------------------- */
-
-      // --- CLIP CLASSIFICATION ---
+      // --- CLIP CLASSIFICATION (Categorization) ---
       try {
         const category = await classifyImageWithCLIP(req.file.path);
         if (category && category !== "Other") {
-          // Add category as the first tag
-          tags = [category.toUpperCase(), ...tags];
+          tags = [category.toUpperCase()];
         }
       } catch (clipErr) {
         console.error(
-          `[AI-DEBUG] CLIP classification failed:`,
+          `[AI-DEBUG] CLIP categorization failed:`,
           clipErr.message,
         );
       }
-      // ----------------------------
 
-      /* --- GEMINI EMBEDDING (DISABLED) ---
-      if (profile?.plan === "SUPER") {
-        try {
-          console.log(`[AI-DEBUG] Attempting Embedding...`);
-          const contextText = `Image: ${req.file.originalname}. Content: ${tags.join(", ")}`;
-          embedding = await generateEmbedding(contextText);
-          if (embedding) {
-            console.log(`[AI-DEBUG] Embedding generated successfully`);
-          } else {
-            console.warn(
-              `[AI-DEBUG] Embedding returned null (fallback failed)`,
-            );
-          }
-        } catch (embErr) {
-          console.error(`[AI-DEBUG] Embedding failed:`, embErr.message);
+      // --- CLIP EMBEDDING (Semantic Search Engine) ---
+      try {
+        console.log(`[AI-DEBUG] Generating CLIP Semantic Embedding...`);
+        embedding = await generateCLIPImageEmbedding(req.file.path);
+        if (embedding) {
+          console.log(
+            `[AI-DEBUG] Embedding generated (Dim: ${embedding.length})`,
+          );
         }
+      } catch (embErr) {
+        console.error(`[AI-DEBUG] Semantic embedding failed:`, embErr.message);
       }
-      ------------------------------------- */
-      // -------------------
 
       // 3. Save to DB
       const { albumId } = req.body;
@@ -135,6 +117,73 @@ class ImageController {
     }
   }
 
+  async search(req, res) {
+    try {
+      const userId = req.user.id;
+      const { q, query } = req.query;
+      const searchTerm = q || query;
+
+      if (!searchTerm) {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      console.log(
+        `[SEARCH] AI Neural Search for: "${searchTerm}" for user: ${userId}`,
+      );
+
+      // 1. Convert text query to CLIP vector
+      const queryEmbedding = await generateCLIPTextEmbedding(searchTerm);
+
+      if (!queryEmbedding) {
+        // Fallback to basic text search if AI fails
+        console.warn(
+          `[SEARCH] AI Embedding failed, falling back to basic search`,
+        );
+        const allImages = await ImageRepository.findAllByUserId(userId);
+        const filtered = allImages.filter(
+          (img) =>
+            img.original_name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            img.tags?.some((t) =>
+              t.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
+        );
+        return res.json(
+          filtered.map((img) => ({ ...img, status: "available" })),
+        );
+      }
+
+      // 2. Perform vector search in Supabase
+      let results = await ImageRepository.searchByEmbedding(
+        userId,
+        queryEmbedding,
+      );
+
+      // 3. Smart Fallback: If AI finds nothing, try basic keyword match
+      if (results.length === 0) {
+        console.log(
+          `[SEARCH] Neural search found 0 results for "${searchTerm}", falling back to keyword search`,
+        );
+        const allImages = await ImageRepository.findAllByUserId(userId);
+        results = allImages.filter(
+          (img) =>
+            img.original_name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            img.tags?.some((t) =>
+              t.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
+        );
+      }
+
+      res.json(results.map((img) => ({ ...img, status: "available" })));
+    } catch (error) {
+      console.error("ImageController Search Error:", error);
+      res.status(500).json({ error: "Search failed", message: error.message });
+    }
+  }
+
   async list(req, res) {
     try {
       const userId = req.user.id;
@@ -162,6 +211,49 @@ class ImageController {
       res
         .status(500)
         .json({ error: "Failed to update image", message: error.message });
+    }
+  }
+
+  async findSimilar(req, res) {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      // 1. Get the source image's embedding
+      const sourceImage = await ImageRepository.findById(id, userId);
+      if (!sourceImage || !sourceImage.embedding) {
+        return res.status(404).json({
+          error: "Source image or AI data not found. Try re-indexing.",
+        });
+      }
+
+      console.log(
+        `[SIMILAR] Finding memories related to: ${sourceImage.original_name}`,
+      );
+
+      // 2. Perform vector search using this embedding
+      const similarImages = await ImageRepository.searchByEmbedding(
+        userId,
+        sourceImage.embedding,
+        0.6, // Increased threshold for high-quality Memories
+        12, // Up to 12 photos for a rich collage
+      );
+
+      // Filter out the source image itself from the results
+      const curatedMemories = similarImages.filter((img) => img.id !== id);
+
+      res.json({
+        source: sourceImage,
+        memories: curatedMemories.map((img) => ({
+          ...img,
+          status: "available",
+        })),
+      });
+    } catch (error) {
+      console.error("ImageController Similar Search Error:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to generate memories", message: error.message });
     }
   }
 
@@ -234,42 +326,6 @@ class ImageController {
     } catch (error) {
       console.error("ImageController Delete Error:", error);
       res.status(500).json({ error: "Delete failed", message: error.message });
-    }
-  }
-
-  async search(req, res) {
-    try {
-      const userId = req.user.id;
-      const { query } = req.query;
-
-      const profile =
-        await require("../repositories/ProfileRepository").findById(userId);
-
-      if (profile?.plan === "SUPER" && query) {
-        // Semantic search for SUPER users
-        const queryVector = await generateEmbedding(query);
-        if (queryVector) {
-          const results = await ImageRepository.searchSemantic(queryVector);
-          return res.json(results.map((r) => ({ ...r, status: "available" })));
-        }
-      }
-
-      // Regular search or fallback for others
-      const allImages = await ImageRepository.findAllByUserId(userId);
-      const filtered = allImages.filter(
-        (img) =>
-          img.original_name
-            .toLowerCase()
-            .includes(query?.toLowerCase() || "") ||
-          img.tags?.some((t) =>
-            t.toLowerCase().includes(query?.toLowerCase() || ""),
-          ),
-      );
-
-      res.json(filtered.map((img) => ({ ...img, status: "available" })));
-    } catch (error) {
-      console.error("ImageController Search Error:", error);
-      res.status(500).json({ error: "Search failed", message: error.message });
     }
   }
 

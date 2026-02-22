@@ -74,13 +74,21 @@ const Albums = () => {
     }
   };
 
+  const getOptimizedImageUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('cloudinary.com')) {
+      return url.replace('/upload/', '/upload/f_auto,q_auto,w_300,c_fill,g_auto/');
+    }
+    return url;
+  };
+
   return (
     <div className="space-y-8">
       {/* Action Bar */}
-      <div className="flex justify-between items-center bg-white/50 backdrop-blur-xl p-4 rounded-[32px] border border-white shadow-soft">
+      <div className="flex flex-wrap justify-between items-center bg-white/50 backdrop-blur-xl p-6 rounded-[32px] border border-white shadow-soft gap-4">
         <div>
-          <h3 className="text-xl font-extrabold text-[#000B2B]">Your Collections</h3>
-          <p className="text-[#000B2B]/40 text-[10px] font-bold uppercase tracking-widest">Organize your cloud assets</p>
+          <h3 className="text-2xl font-black text-[#000B2B]">Your Collections</h3>
+          <p className="text-[#000B2B]/40 text-[10px] font-bold uppercase tracking-widest">Organize your cloud assets into beautiful albums</p>
         </div>
 
         <button 
@@ -126,22 +134,39 @@ const Albums = () => {
                   className="group cursor-pointer"
               >
                   <div className="aspect-square rounded-[40px] overflow-hidden mb-6 relative shadow-soft border border-white transition-all duration-500 bg-white">
-                      {/* Replace with actual cover logic if needed */}
-                      <div className="w-full h-full bg-gradient-to-br from-[#000B2B] to-[#000B2B]/40 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
-                        <ImageIcon size={48} className="text-[#FFC107]/20" />
-                      </div>
+                      {album.cover_url ? (
+                        <img 
+                          src={getOptimizedImageUrl(album.cover_url)} 
+                          alt={album.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[#000B2B] to-[#000B2B]/40 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                          <ImageIcon size={48} className="text-[#FFC107]/20" />
+                        </div>
+                      )}
                       
                       <div className="absolute inset-0 bg-gradient-to-t from-[#000B2B]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       
+                      <div className="absolute bottom-6 right-6">
+                        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                            <ImageIcon size={12} className="text-[#000B2B]" />
+                            <span className="text-[10px] font-extrabold text-[#000B2B] uppercase tracking-wider">{album.image_count || 0} Photos</span>
+                        </div>
+                      </div>
+
                       <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                          <button className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-[#000B2B] shadow-lg hover:bg-[#FFC107]">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); /* Add context menu logic */ }}
+                            className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-[#000B2B] shadow-lg hover:bg-[#FFC107]"
+                          >
                               <MoreHorizontal size={20} />
                           </button>
                       </div>
                   </div>
                   <h3 className="text-xl font-extrabold text-[#000B2B] mb-1 group-hover:text-[#FFC107] transition-colors line-clamp-1">{album.name}</h3>
                   <p className="text-[#000B2B]/40 font-bold uppercase tracking-widest text-[10px] flex items-center gap-1.5">
-                      {album.description || "Project Collection"}
+                      {album.description || "Collection"}
                   </p>
               </motion.div>
           ))}

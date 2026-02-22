@@ -5,6 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
+    "reindex": "node scripts/reindex_ai.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

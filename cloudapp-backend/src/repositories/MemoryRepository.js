@@ -1,43 +1,44 @@
 const { supabaseAdmin } = require("../config/supabase");
 
-class AlbumRepository {
+class MemoryRepository {
+  async create(memoryData) {
+    const { data, error } = await supabaseAdmin
+      .from("memories")
+      .insert([memoryData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   async findAllByUserId(userId) {
     const { data, error } = await supabaseAdmin
-      .from("albums")
+      .from("memories")
       .select(
         `
         *,
-        images (
-          cloudinary_url,
-          created_at
-        )
+        source_image:source_image_id (*)
       `,
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-
-    // Process to find the latest image as cover and count images
-    return data.map((album) => {
-      const sortedImages = (album.images || []).sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at),
-      );
-      return {
-        ...album,
-        cover_url:
-          sortedImages.length > 0 ? sortedImages[0].cloudinary_url : null,
-        image_count: sortedImages.length,
-        images: undefined, // Don't send the whole array
-      };
-    });
+    return data;
   }
 
-  async create(albumData) {
+  async findById(id, userId) {
     const { data, error } = await supabaseAdmin
-      .from("albums")
-      .insert([albumData])
-      .select()
+      .from("memories")
+      .select(
+        `
+        *,
+        source_image:source_image_id (*)
+      `,
+      )
+      .eq("id", id)
+      .eq("user_id", userId)
       .single();
 
     if (error) throw error;
@@ -46,7 +47,7 @@ class AlbumRepository {
 
   async update(id, userId, updates) {
     const { data, error } = await supabaseAdmin
-      .from("albums")
+      .from("memories")
       .update(updates)
       .eq("id", id)
       .eq("user_id", userId)
@@ -59,7 +60,7 @@ class AlbumRepository {
 
   async delete(id, userId) {
     const { error } = await supabaseAdmin
-      .from("albums")
+      .from("memories")
       .delete()
       .eq("id", id)
       .eq("user_id", userId);
@@ -69,4 +70,4 @@ class AlbumRepository {
   }
 }
 
-module.exports = new AlbumRepository();
+module.exports = new MemoryRepository();

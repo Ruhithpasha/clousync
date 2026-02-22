@@ -81,29 +81,110 @@ async function generateImageTags(filePath, mimeType) {
   return ["AI-Processed"];
 }
 
-let pipeline;
-let clipPromise;
+let classifier;
+let textModel;
+let visionModel;
+let tokenizer;
+let processor;
+
+let classifierPromise;
+let textModelPromise;
+let visionModelPromise;
 
 /**
- * Lazy loads the CLIP pipeline
+ * L2 Normalization helper for vectors
  */
-async function getCLIP() {
-  if (pipeline) return pipeline;
-  if (clipPromise) return clipPromise;
+function L2Normalize(vector) {
+  const norm = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+  return vector.map((val) => val / (norm || 1));
+}
 
-  console.log(
-    "🚀 [CLIP] Initialization started (this may take a moment on first run)...",
-  );
-  const { pipeline: transformerPipeline } =
-    await import("@xenova/transformers");
+/**
+ * Lazy loads the specialized CLIP components
+ */
+async function getCLIP(type = "classifier") {
+  const {
+    pipeline: transformerPipeline,
+    CLIPTextModelWithProjection,
+    CLIPVisionModelWithProjection,
+    AutoTokenizer,
+    AutoProcessor,
+  } = await import("@xenova/transformers");
 
-  clipPromise = transformerPipeline(
-    "zero-shot-image-classification",
-    "Xenova/clip-vit-base-patch32",
-  );
-  pipeline = await clipPromise;
-  console.log("✅ [CLIP] Model loaded and ready.");
-  return pipeline;
+  const modelId = "Xenova/clip-vit-base-patch32";
+
+  if (type === "classifier") {
+    if (classifier) return classifier;
+    if (classifierPromise) return classifierPromise;
+    classifierPromise = transformerPipeline(
+      "zero-shot-image-classification",
+      modelId,
+    );
+    classifier = await classifierPromise;
+    return classifier;
+  } else if (type === "text") {
+    if (textModel && tokenizer) return { model: textModel, tokenizer };
+    if (textModelPromise) return textModelPromise;
+
+    textModelPromise = (async () => {
+      tokenizer = await AutoTokenizer.from_pretrained(modelId);
+      textModel = await CLIPTextModelWithProjection.from_pretrained(modelId);
+      return { model: textModel, tokenizer };
+    })();
+    return textModelPromise;
+  } else if (type === "vision") {
+    if (visionModel && processor) return { model: visionModel, processor };
+    if (visionModelPromise) return visionModelPromise;
+
+    visionModelPromise = (async () => {
+      processor = await AutoProcessor.from_pretrained(modelId);
+      visionModel =
+        await CLIPVisionModelWithProjection.from_pretrained(modelId);
+      return { model: visionModel, processor };
+    })();
+    return visionModelPromise;
+  }
+}
+
+async function generateCLIPImageEmbedding(filePath) {
+  try {
+    const { RawImage } = await import("@xenova/transformers");
+    const { model, processor } = await getCLIP("vision");
+
+    // Read and process image
+    const image = await RawImage.read(filePath);
+    const inputs = await processor(image);
+
+    // Generate image embedding (projected to 512-d)
+    const { image_embeds } = await model(inputs);
+
+    // Normalize and return as array
+    return L2Normalize(Array.from(image_embeds.data));
+  } catch (error) {
+    console.error("❌ [CLIP-EMB] Image embedding failed:", error.message);
+    return null;
+  }
+}
+
+/**
+ * Generates a 512-d vector for a text query
+ */
+async function generateCLIPTextEmbedding(text) {
+  try {
+    const { model, tokenizer } = await getCLIP("text");
+
+    // Tokenize text
+    const inputs = await tokenizer(text, { padding: true, truncation: true });
+
+    // Generate text embedding (projected to 512-d)
+    const { text_embeds } = await model(inputs);
+
+    // Normalize and return as array
+    return L2Normalize(Array.from(text_embeds.data));
+  } catch (error) {
+    console.error("❌ [CLIP-EMB] Text embedding failed:", error.message);
+    return null;
+  }
 }
 
 async function classifyImageWithCLIP(filePath) {
@@ -115,19 +196,26 @@ async function classifyImageWithCLIP(filePath) {
 
     const classifier = await getCLIP();
     const categories = [
-      "Nature",
-      "People",
-      "Documents",
-      "Architecture",
-      "Food",
-      "Technology",
-      "Animals",
-      "Travel",
-      "Sports",
-      "Fashion",
-      "Art",
-      "Interiors",
-      "Vehicles",
+      "Nature and Landscapes",
+      "Portrait of a Person",
+      "Baby or Small Child",
+      "Documents and Text",
+      "Screenshot of a Phone or Computer",
+      "Architecture and Buildings",
+      "Food and Drinks",
+      "Technology and Gadgets",
+      "Animals and Pets",
+      "Travel and Places",
+      "Sports and Fitness",
+      "Fashion and Clothing",
+      "Art and Drawings",
+      "Home Interiors",
+      "Vehicles and Cars",
+      "Flowers and Plants",
+      "Beach and Ocean",
+      "Mountains and Hiking",
+      "Musical Instruments",
+      "Celebration, Wedding or Party",
     ];
 
     console.log(`\n--- 🤖 CLIP ANALYSIS START ---`);
@@ -135,17 +223,64 @@ async function classifyImageWithCLIP(filePath) {
 
     const results = await classifier(filePath, categories);
 
-    // Sort results by score (highest first)
+    // CLIP results are sorted by score. Let's look at the top few.
     const topResult = results[0];
-    const rawScore = (topResult.score * 100).toFixed(1);
+    const secondResult = results[1];
 
     console.log(
-      `✅ [CLIP] TOP MATCH: ${topResult.label.toUpperCase()} (${rawScore}%)`,
+      `[CLIP] Results:`,
+      results
+        .slice(0, 3)
+        .map((r) => `${r.label}: ${(r.score * 100).toFixed(1)}%`)
+        .join(", "),
     );
+
+    let finalLabel = topResult.label;
+
+    // --- HEURISTIC: People/Kids/Portrait Priority ---
+    // If CLIP sees a person, it often scores "Fashion" high because of clothes.
+    const personLabels = ["Portrait of a Person", "Baby or Small Child"];
+    if (
+      topResult.label === "Fashion and Clothing" &&
+      secondResult &&
+      personLabels.includes(secondResult.label) &&
+      secondResult.score > 0.12 // Lower threshold for person override
+    ) {
+      console.log(
+        `[CLIP] 💡 Heuristic: Person found in Fashion context. Re-categorizing to '${secondResult.label}'.`,
+      );
+      finalLabel = secondResult.label;
+    }
+
+    // Map long descriptive labels back to simple UI categories
+    const labelMap = {
+      "Nature and Landscapes": "Nature",
+      "Portrait of a Person": "People",
+      "Baby or Small Child": "Kids",
+      "Documents and Text": "Documents",
+      "Screenshot of a Phone or Computer": "Screenshots",
+      "Architecture and Buildings": "Architecture",
+      "Food and Drinks": "Food",
+      "Technology and Gadgets": "Technology",
+      "Animals and Pets": "Animals",
+      "Travel and Places": "Travel",
+      "Sports and Fitness": "Sports",
+      "Fashion and Clothing": "Fashion",
+      "Art and Drawings": "Art",
+      "Home Interiors": "Interiors",
+      "Vehicles and Cars": "Vehicles",
+      "Flowers and Plants": "Flowers",
+      "Beach and Ocean": "Beach",
+      "Mountains and Hiking": "Mountains",
+      "Musical Instruments": "Music",
+      "Celebration, Wedding or Party": "Celebrations",
+    };
+
+    const finalCategory = labelMap[finalLabel] || "Other";
+    console.log(`✅ [CLIP] FINAL CATEGORY: ${finalCategory.toUpperCase()}`);
     console.log(`--- 🤖 CLIP ANALYSIS END ---\n`);
 
-    // Only return the category if the confidence is high enough (e.g. > 15%)
-    return topResult.score > 0.15 ? topResult.label : "Other";
+    return topResult.score > 0.15 ? finalCategory : "Other";
   } catch (error) {
     console.error("❌ [CLIP] Classification failed:", error.message);
     console.log(`--- 🤖 CLIP ANALYSIS END ---\n`);
@@ -174,4 +309,6 @@ module.exports = {
   generateImageTags,
   generateEmbedding,
   classifyImageWithCLIP,
+  generateCLIPImageEmbedding,
+  generateCLIPTextEmbedding,
 };

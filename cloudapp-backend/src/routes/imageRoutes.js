@@ -40,6 +40,11 @@ router.post(
 router.get("/images", authenticateUser, ImageController.list);
 router.get("/local-images", authenticateUser, ImageController.list);
 router.get("/search-images", authenticateUser, ImageController.search);
+router.get(
+  "/images/:id/similar",
+  authenticateUser,
+  ImageController.findSimilar,
+);
 router.put("/images/:id", authenticateUser, ImageController.update);
 router.put("/images-bulk", authenticateUser, ImageController.bulkUpdate);
 router.delete("/images/:id", authenticateUser, ImageController.delete);

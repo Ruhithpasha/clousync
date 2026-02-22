@@ -9,6 +9,9 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import Settings from './pages/Settings';
 import ResetPassword from './pages/ResetPassword';
 import AdminDashboard from './pages/AdminDashboard';
+import Explore from './pages/Explore';
+import AISearch from './pages/AISearch';
+import Memories from './pages/Memories';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -39,6 +42,36 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardLayout><ImageUploader /></DashboardLayout>
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* AI Explore Section */}
+          <Route 
+            path="/explore" 
+            element={
+              <ProtectedRoute>
+                <DashboardLayout><Explore /></DashboardLayout>
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Neural Search Section */}
+          <Route 
+            path="/ai-search" 
+            element={
+              <ProtectedRoute>
+                <DashboardLayout><AISearch /></DashboardLayout>
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* AI Memories Section */}
+          <Route 
+            path="/memories" 
+            element={
+              <ProtectedRoute>
+                <DashboardLayout><Memories /></DashboardLayout>
               </ProtectedRoute>
             } 
           />

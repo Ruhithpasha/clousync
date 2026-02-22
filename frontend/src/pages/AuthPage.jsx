@@ -13,6 +13,7 @@ const AuthPage = () => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -69,7 +70,7 @@ const AuthPage = () => {
           }
         });
         if (error) throw error;
-        alert('Verification email sent! Please check your inbox.');
+        setToast({ message: 'Verification email sent! Please check your inbox.', type: 'info' });
         setIsLogin(true); // Switch to login mode so they can sign in after verifying
         setLoading(false);
         return;
@@ -265,6 +266,29 @@ const AuthPage = () => {
                 ← Back to Home
             </button>
         </div>
+
+        {/* Premium Toast Notification */}
+        <AnimatePresence>
+          {toast && (
+            <motion.div 
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-4 bg-white text-[#000B2B] px-8 py-5 rounded-[32px] shadow-2xl border border-black/5 backdrop-blur-3xl min-w-[320px]"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#FFC107]/10 flex items-center justify-center text-[#FFC107]">
+                <Mail size={18} />
+              </div>
+              <div className="flex-grow text-left">
+                <p className="text-sm font-black uppercase tracking-widest">Email Sent</p>
+                <p className="text-xs font-bold text-[#000B2B]/40">{toast.message}</p>
+              </div>
+              <button onClick={() => setToast(null)} className="text-[#000B2B]/20 hover:text-[#000B2B] transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

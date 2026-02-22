@@ -40,7 +40,7 @@ CREATE TABLE public.images (
   public_id TEXT NOT NULL,
   file_size BIGINT DEFAULT 0, -- Store size in bytes
   tags TEXT[],
-  embedding vector(768), -- AI Semantic features
+  embedding vector(512), -- CLIP ViT-B/32 generates 512 dimensions
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -86,7 +86,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- 7. Semantic Search Function
 CREATE OR REPLACE FUNCTION match_images (
-  query_embedding vector(768),
+  query_embedding vector(512),
   match_threshold float,
   match_count int
 )
@@ -126,3 +126,19 @@ BEGIN
   LIMIT match_count;
 END;
 $$;
+
+-- 8. Create Memories Table
+CREATE TABLE public.memories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  source_image_id UUID REFERENCES public.images(id) ON DELETE CASCADE NOT NULL,
+  image_ids UUID[] NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.memories ENABLE ROW LEVEL SECURITY;
+
+-- Policy
+CREATE POLICY "Users can manage their own memories" ON public.memories FOR ALL USING (auth.uid () = user_id);

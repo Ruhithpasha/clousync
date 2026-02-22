@@ -53,6 +53,7 @@ const ImageUploader = () => {
   const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'timeline'
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [profile, setProfile] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const scrollRef = useRef(null);
 
   const scroll = (direction) => {
@@ -239,7 +240,10 @@ const ImageUploader = () => {
   };
 
   const handleDelete = async (imageId) => {
-    if (!window.confirm("Are you sure you want to delete this image? It will be removed from your cloud storage permanently.")) return;
+    if (!itemToDelete) {
+      setItemToDelete(imageId);
+      return;
+    }
 
     try {
       setIsUpdating(imageId);
@@ -262,6 +266,7 @@ const ImageUploader = () => {
       setErrorMsg("Failed to delete image from cloud.");
     } finally {
       setIsUpdating(null);
+      setItemToDelete(null);
     }
   };
 
@@ -739,6 +744,46 @@ const ImageUploader = () => {
             ))}
           </motion.div>
       )}
+
+      {/* Premium Confirmation Overlay */}
+      <AnimatePresence>
+          {itemToDelete && (
+              <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[250] bg-[#000B2B]/40 backdrop-blur-sm flex items-center justify-center p-6"
+              >
+                  <motion.div 
+                      initial={{ scale: 0.9, y: 20 }}
+                      animate={{ scale: 1, y: 0 }}
+                      className="bg-white dark:bg-[#1e293b] p-8 rounded-[40px] shadow-2xl max-w-sm w-full text-center space-y-6 border border-black/5"
+                  >
+                      <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Trash2 size={40} />
+                      </div>
+                      <div>
+                          <h4 className="text-2xl font-black text-[#000B2B] dark:text-white mb-2">Delete Photo?</h4>
+                          <p className="text-sm font-bold text-[#000B2B]/40 dark:text-white/40">This will permanently remove this image from your cloud vault.</p>
+                      </div>
+                      <div className="flex gap-4">
+                          <button 
+                              onClick={() => setItemToDelete(null)}
+                              className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-black/5 dark:bg-white/5 text-[#000B2B] dark:text-white hover:bg-black/10 transition-colors"
+                          >
+                              Cancel
+                          </button>
+                          <button 
+                              onClick={() => handleDelete(itemToDelete)}
+                              className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600 transition-colors"
+                          >
+                              Confirm
+                          </button>
+                      </div>
+                  </motion.div>
+              </motion.div>
+          )}
+      </AnimatePresence>
     </div>
   );
 };

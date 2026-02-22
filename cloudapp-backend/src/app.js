@@ -7,6 +7,7 @@ const imageRoutes = require("./routes/imageRoutes");
 const albumRoutes = require("./routes/albumRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const memoryRoutes = require("./routes/memoryRoutes");
 
 const app = express();
 const UPLOAD_DIR = path.join(__dirname, "../uploads");
@@ -50,10 +51,12 @@ app.use("/api", imageRoutes);
 app.use("/api", albumRoutes);
 app.use("/api", profileRoutes);
 app.use("/api", adminRoutes);
+app.use("/api/memories", memoryRoutes);
 app.use("/", imageRoutes); // Keep original routes for backward compatibility
 app.use("/", albumRoutes);
 app.use("/", profileRoutes);
 app.use("/", adminRoutes);
+app.use("/memories", memoryRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
