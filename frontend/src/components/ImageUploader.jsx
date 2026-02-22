@@ -157,8 +157,24 @@ const ImageUploader = () => {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Upload failed for ${file.name}`);
+          let errorMessage = `Upload failed for ${file.name}`;
+          const contentType = response.headers.get("content-type");
+          
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } else {
+            // This happens when Nginx or the server returns an HTML error page (e.g. 413, 502, 504)
+            if (response.status === 413) {
+              errorMessage = "File is too large for the server. Please check Nginx 'client_max_body_size' configuration.";
+            } else if (response.status === 404) {
+              errorMessage = "Upload endpoint not found. Please check your API configuration.";
+            } else {
+              errorMessage = `Server Error (${response.status}). The server returned an unexpected response.`;
+            }
+            console.error("Non-JSON error response received:", await response.text());
+          }
+          throw new Error(errorMessage);
         }
       }
 

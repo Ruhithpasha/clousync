@@ -69,6 +69,7 @@ This workflow guides you through deploying the CloudSync application to a Digita
    server {
        listen 80;
        server_name yourdomain.com;
+       client_max_body_size 50M; # Allow large photo uploads
 
        location / {
            proxy_pass http://localhost:3000;
