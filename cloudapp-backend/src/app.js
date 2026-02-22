@@ -17,7 +17,6 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "http://10.73.224.134:3000",
       "https://cloudsync.publicvm.com",
       "http://localhost",
       "capacitor://localhost",
