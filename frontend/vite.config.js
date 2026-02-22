@@ -23,6 +23,14 @@ export default defineConfig({
   },
   preview: {
     port: 3000,
+    host: true,
     allowedHosts: ["cloudsync.publicvm.com"],
+    proxy: {
+      "/api": {
+        target: "http://backend:3001",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
   },
 });

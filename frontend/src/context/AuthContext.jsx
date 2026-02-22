@@ -65,7 +65,14 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    // Listen for auth state changes (this fires immediately on subscribe)
+    // Initial session check
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (isMounted) handleSession(session);
+    };
+    initAuth();
+
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleSession(session);
     });

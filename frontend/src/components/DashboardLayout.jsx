@@ -31,6 +31,12 @@ const DashboardLayout = ({ children }) => {
   const { user, profile } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
 
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
+  }, []);
+
   const menuItems = [
     { icon: <LayoutDashboard size={20} />, label: "Overview", path: "/cloudinary" },
     { icon: <ImageIcon size={20} />, label: "Library", path: "/local" }, 
