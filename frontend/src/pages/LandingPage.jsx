@@ -93,7 +93,7 @@ const LandingPage = () => {
           className="mb-8"
         >
           <span className="bg-[#000B2B]/5 border border-[#000B2B]/10 rounded-full px-4 py-1.5 text-xs font-bold text-[#000B2B] uppercase tracking-widest">
-            Ruhith Pasha Companies
+            Yogesh Companies
           </span>
         </motion.div>
 
@@ -445,8 +445,8 @@ const LandingPage = () => {
             </div>
             
             <div className="flex gap-12 text-white/40 font-bold text-sm uppercase tracking-widest">
-              <a href="https://github.com/ruhithpasha" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
-              <a href="https://www.linkedin.com/in/ruhith-pasha-8a3625245/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">LinkedIn</a>
+              <a href="https://github.com/yogesh" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
+              <a href="https://www.linkedin.com/in/yogesh/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">LinkedIn</a>
             </div>
             
             <p className="text-white/20 text-xs font-bold uppercase tracking-widest">

@@ -154,9 +154,9 @@ The app will be accessible on port 3000 (Frontend) and 3001 (Backend).
 
 ## 👨‍💻 Developed By
 
-**Ruhith Pasha**
+**Yogesh**
 
-- GitHub: [@ruhithpasha](https://github.com/ruhithpasha)
-- LinkedIn: [Ruhith Pasha](https://www.linkedin.com/in/ruhith-pasha-8a3625245/)
+- GitHub: [@yogesh](https://github.com/yogesh)
+- LinkedIn: [Yogesh](https://www.linkedin.com/in/yogesh/)
 
 © 2026 CloudSync Pro. All Rights Reserved.
