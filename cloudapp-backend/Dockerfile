@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     make \
     g++ \
     curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
