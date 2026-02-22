@@ -9,7 +9,8 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-// Register Service Worker
+// Register Service Worker (Temporarily disabled for troubleshooting)
+/*
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
@@ -17,3 +18,4 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('SW Registration failed:', err));
   });
 }
+*/

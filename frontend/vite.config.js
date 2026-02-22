@@ -24,7 +24,7 @@ export default defineConfig({
   preview: {
     port: 3000,
     host: true,
-    allowedHosts: ["cloudsync.publicvm.com"],
+    allowedHosts: true,
     proxy: {
       "/api": {
         target: "http://backend:3001",

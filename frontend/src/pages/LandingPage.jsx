@@ -169,7 +169,7 @@ const LandingPage = () => {
                 </div>
                 <h2 className="text-4xl font-extrabold text-[#000B2B] mb-6 leading-tight">Manage every <br /> aspect of your <br /> cloud storage.</h2>
               </div>
-              <p className="text-[#000B2B]/80 font-semibold text-lg max-sm">
+              <p className="text-[#000B2B]/80 font-semibold text-lg">
                 Control everything from a single minimal dashboard. No clutter, just performance.
               </p>
             </motion.div>
