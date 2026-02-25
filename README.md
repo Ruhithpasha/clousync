@@ -49,7 +49,7 @@
 ### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/ruhithpasha/cloudsync.git
+git clone https://github.com/ruhithpasha/clousync.git
 cd cloudsync
 ```
 

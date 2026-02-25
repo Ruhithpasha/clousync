@@ -1,14 +1,23 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../lib/supabaseClient';
-import { ShieldCheck, Lock, Mail, ArrowRight, Home } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "../lib/supabaseClient";
+import {
+  ShieldCheck,
+  Lock,
+  Mail,
+  ArrowRight,
+  Home,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 
 const AdminLoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleAdminAuth = async (e) => {
@@ -17,17 +26,19 @@ const AdminLoginPage = () => {
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error: authError } = await supabase.auth.signInWithPassword(
+        {
+          email,
+          password,
+        },
+      );
 
       if (authError) throw authError;
 
       // SUCCESS: Navigate immediately to the dashboard.
       // The ProtectedRoute and AuthContext will handle the profile check
       // during the dashboard mount, which prevents blocking the UI here.
-      navigate('/admin');
+      navigate("/admin");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -43,7 +54,7 @@ const AdminLoginPage = () => {
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px]" />
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md relative z-10"
@@ -79,17 +90,24 @@ const AdminLoginPage = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 font-bold text-white focus:ring-2 focus:ring-[#FFC107] outline-none transition-all placeholder:text-white/20"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 font-bold text-white focus:ring-2 focus:ring-[#FFC107] outline-none transition-all placeholder:text-white/20"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-[#FFC107] transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
 
               {error && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="text-red-400 text-sm font-bold text-center bg-red-400/10 p-4 rounded-2xl border border-red-400/20"
@@ -103,14 +121,17 @@ const AdminLoginPage = () => {
                 disabled={loading}
                 className="w-full bg-[#FFC107] text-[#000B2B] py-5 rounded-2xl font-[900] text-lg flex items-center justify-center gap-2 hover:bg-[#FFC107]/90 transition-all active:scale-95 disabled:opacity-50 mt-6 shadow-xl shadow-[#FFC107]/10"
               >
-                {loading ? 'Authenticating...' : 'Enter Dashboard'}
+                {loading ? "Authenticating..." : "Enter Dashboard"}
                 {!loading && <ArrowRight className="w-5 h-5" />}
               </button>
             </div>
           </form>
 
           <div className="mt-8 text-center pt-8 border-t border-white/5">
-            <Link to="/" className="inline-flex items-center gap-2 text-white/40 hover:text-white font-bold text-xs uppercase tracking-widest transition-colors">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-white/40 hover:text-white font-bold text-xs uppercase tracking-widest transition-colors"
+            >
               <Home size={14} />
               Back to Home
             </Link>

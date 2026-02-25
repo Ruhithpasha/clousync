@@ -1,6 +1,8 @@
 const fs = require("fs");
 const ImageRepository = require("../repositories/ImageRepository");
 const { uploadImage, deleteImage } = require("../utils/cloudinaryUtils");
+const cloudinary = require("../config/cloudinary");
+const { supabaseAdmin } = require("../config/supabase");
 const {
   generateImageTags,
   generateEmbedding,
@@ -10,6 +12,9 @@ const {
 } = require("../utils/aiUtils");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "cloudsync_secure_share_key_2024";
+
+// Supabase Storage bucket used for free image backups
+const BACKUP_BUCKET = "image-backups";
 
 class ImageController {
   async upload(req, res) {
@@ -102,12 +107,54 @@ class ImageController {
 
       const dbData = await ImageRepository.create(imageData);
 
+      // --- SUPABASE STORAGE BACKUP (free, no Cloudinary paid plan needed) ---
+      // The local file still exists at this point — we save it to Supabase Storage
+      // so we can restore it later if Cloudinary loses the image.
+      let backupPath = null;
+      try {
+        if (fs.existsSync(req.file.path)) {
+          const fileBuffer = fs.readFileSync(req.file.path);
+          backupPath = `${userId}/${cloudinaryResult.public_id}`;
+
+          const { error: storageErr } = await supabaseAdmin.storage
+            .from(BACKUP_BUCKET)
+            .upload(backupPath, fileBuffer, {
+              contentType: req.file.mimetype,
+              upsert: true,
+            });
+
+          if (storageErr) {
+            // Non-fatal — log and continue. Image still uploaded to Cloudinary.
+            console.warn(
+              `[BACKUP] Supabase Storage backup failed (non-fatal): ${storageErr.message}`,
+            );
+            backupPath = null;
+          } else {
+            console.log(
+              `[BACKUP] Backup saved to Supabase Storage: ${backupPath}`,
+            );
+            // Patch backup_path into the DB record
+            await supabaseAdmin
+              .from("images")
+              .update({ backup_path: backupPath })
+              .eq("id", dbData.id);
+          }
+        }
+      } catch (backupErr) {
+        // Non-fatal — never block the upload response because of a backup failure
+        console.warn(`[BACKUP] Backup error (non-fatal):`, backupErr.message);
+      }
+
       // Cleanup local file
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
 
-      res.status(201).json({ ...dbData, status: "available" });
+      res.status(201).json({
+        ...dbData,
+        backup_path: backupPath,
+        status: "available",
+      });
     } catch (error) {
       console.error("ImageController Upload Error:", error);
       if (req.file && fs.existsSync(req.file.path)) {
@@ -281,29 +328,135 @@ class ImageController {
   }
 
   async restore(req, res) {
+    // Legacy route kept for backward compatibility
     const { filename } = req.params;
+    return res.status(410).json({
+      error: "This restore method is deprecated.",
+      message: "Use POST /api/images/:id/restore instead.",
+    });
+  }
+
+  /**
+   * Restore a Cloudinary image using the FREE Supabase Storage backup.
+   *
+   * Flow:
+   *   1. Look up image record in Supabase DB (gets public_id + backup_path)
+   *   2. Download the backup file from Supabase Storage
+   *   3. Re-upload the buffer to Cloudinary using upload_stream (same public_id)
+   *   4. Update cloudinary_url in Supabase DB with the fresh URL
+   *   5. Return updated image
+   *
+   * This is 100% free — no paid Cloudinary plan required.
+   */
+  async restoreFromMetadata(req, res) {
     try {
-      const path = require("path");
-      const localPath = path.join(__dirname, "../../uploads", filename);
-      if (!fs.existsSync(localPath)) {
-        return res.status(404).json({ error: "Local image file not found" });
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      // 1. Fetch image record from Supabase
+      const image = await ImageRepository.findById(id, userId);
+      if (!image) {
+        return res
+          .status(404)
+          .json({ error: "Image record not found in database" });
       }
 
-      const result = await uploadImage(localPath, filename);
-      res.json({
-        message: "Image restored to Cloudinary",
-        data: {
-          filename: filename,
-          cloudinaryUrl: result.secure_url,
-          cloudinaryPublicId: result.public_id,
-          status: "available",
-        },
+      // Determine backup_path: use stored value or reconstruct from userId + public_id
+      const backupPath = image.backup_path || `${userId}/${image.public_id}`;
+
+      if (!image.public_id) {
+        return res.status(400).json({
+          error: "No Cloudinary public_id found. Cannot restore.",
+        });
+      }
+
+      console.log(
+        `[RESTORE] Attempting restore for: ${image.original_name} (ID: ${id})`,
+      );
+      console.log(`[RESTORE] Backup path: ${backupPath}`);
+      console.log(`[RESTORE] Public ID: ${image.public_id}`);
+
+      // 2. Download the backup file from Supabase Storage
+      console.log(
+        `[RESTORE] Downloading from Supabase bucket: ${BACKUP_BUCKET}...`,
+      );
+      const { data: fileData, error: downloadErr } = await supabaseAdmin.storage
+        .from(BACKUP_BUCKET)
+        .download(backupPath);
+
+      if (downloadErr || !fileData) {
+        console.error(
+          "[RESTORE] Supabase Storage download failed:",
+          downloadErr?.message,
+        );
+        return res.status(404).json({
+          error: "Backup not found in Supabase Storage",
+          message:
+            "This image was uploaded before the backup system was enabled, " +
+            "or the backup was not saved successfully at upload time. " +
+            "You will need to re-upload the original image manually.",
+          backup_path: backupPath,
+        });
+      }
+
+      // 3. Convert Blob → Buffer and re-upload to Cloudinary using the original public_id
+      const arrayBuffer = await fileData.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      console.log(
+        `[RESTORE] Re-uploading ${buffer.length} bytes to Cloudinary...`,
+      );
+
+      console.log(
+        `[RESTORE] Re-uploading ${buffer.length} bytes to Cloudinary...`,
+      );
+
+      const cloudinaryResult = await new Promise((resolve, reject) => {
+        console.log(
+          `[RESTORE] Cloudinary upload_stream starting for ${image.public_id}`,
+        );
+        cloudinary.uploader
+          .upload_stream(
+            {
+              public_id: image.public_id, // Reuse the exact same public_id
+              overwrite: true,
+              resource_type: "image",
+            },
+            (err, result) => {
+              if (err) {
+                console.error(`[RESTORE] Cloudinary upload_stream error:`, err);
+                reject(err);
+              } else {
+                console.log(`[RESTORE] Cloudinary upload_stream success!`);
+                resolve(result);
+              }
+            },
+          )
+          .end(buffer);
       });
-    } catch (err) {
-      console.error("ImageController Restore Error:", err);
-      res
-        .status(500)
-        .json({ error: "Failed to restore image", message: err.message });
+
+      // 4. Update the cloudinary_url in Supabase DB
+      const freshUrl = cloudinaryResult.secure_url;
+      const updated = await ImageRepository.update(id, userId, {
+        cloudinary_url: freshUrl,
+      });
+
+      console.log(
+        `[RESTORE] ✅ Successfully restored ${image.public_id} → ${freshUrl}`,
+      );
+
+      // 5. Return the updated record
+      res.json({
+        message: "Image successfully restored from Supabase Storage backup",
+        image: { ...updated, status: "available" },
+        restoredUrl: freshUrl,
+      });
+    } catch (error) {
+      console.error("ImageController RestoreFromMetadata Error:", error);
+      res.status(500).json({
+        error: "Failed to restore image",
+        message: error.message,
+      });
     }
   }
 
@@ -372,6 +525,82 @@ class ImageController {
     } catch (error) {
       console.error("ImageController ResolveShare Error:", error);
       res.status(403).send("This link has expired or is invalid.");
+    }
+  }
+
+  async getRestorable(req, res) {
+    try {
+      const userId = req.user.id;
+      const { data: images, error } = await supabaseAdmin
+        .from("images")
+        .select("*")
+        .eq("user_id", userId)
+        .not("backup_path", "is", null)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Generate signed URLs for previews (valid for 1 hour)
+      const imagesWithPreviews = await Promise.all(
+        images.map(async (img) => {
+          const { data } = await supabaseAdmin.storage
+            .from(BACKUP_BUCKET)
+            .createSignedUrl(img.backup_path, 3600);
+          return {
+            ...img,
+            supabase_preview_url: data?.signedUrl,
+            status: "available",
+          };
+        }),
+      );
+
+      res.json(imagesWithPreviews);
+    } catch (error) {
+      console.error("ImageController GetRestorable Error:", error);
+      res.status(500).json({ error: "Failed to fetch restorable images" });
+    }
+  }
+
+  /**
+   * Bulk check if images exist on Cloudinary.
+   * Helps identify which images were deleted and need restoration.
+   */
+  async checkCloudinaryStatusBulk(req, res) {
+    try {
+      const { imageIds } = req.body;
+      const userId = req.user.id;
+
+      if (!Array.isArray(imageIds)) {
+        return res.status(400).json({ error: "imageIds must be an array" });
+      }
+
+      // Fetch the public_ids from our DB
+      const { data: images, error } = await supabaseAdmin
+        .from("images")
+        .select("id, public_id")
+        .in("id", imageIds.slice(0, 100)) // Cloudinary limit is 100
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      const publicIds = images.map((img) => img.public_id);
+
+      // Call Cloudinary API to get info on these resources
+      const cloudRes = await cloudinary.api.resources_by_ids(publicIds);
+      const existingPublicIds = new Set(
+        cloudRes.resources.map((r) => r.public_id),
+      );
+
+      // Determine which ones are missing
+      const statusResults = images.map((img) => ({
+        id: img.id,
+        isDeleted: !existingPublicIds.has(img.public_id),
+      }));
+
+      res.json(statusResults);
+    } catch (error) {
+      console.error("ImageController CheckStatus Error:", error);
+      res.status(500).json({ error: "Failed to check image status" });
     }
   }
 }

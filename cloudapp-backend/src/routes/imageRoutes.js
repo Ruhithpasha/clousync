@@ -38,6 +38,16 @@ router.post(
   ImageController.upload,
 );
 router.get("/images", authenticateUser, ImageController.list);
+router.get(
+  "/restorable-images",
+  authenticateUser,
+  ImageController.getRestorable,
+);
+router.post(
+  "/check-status-bulk",
+  authenticateUser,
+  ImageController.checkCloudinaryStatusBulk,
+);
 router.get("/local-images", authenticateUser, ImageController.list);
 router.get("/search-images", authenticateUser, ImageController.search);
 router.get(
@@ -48,6 +58,13 @@ router.get(
 router.put("/images/:id", authenticateUser, ImageController.update);
 router.put("/images-bulk", authenticateUser, ImageController.bulkUpdate);
 router.delete("/images/:id", authenticateUser, ImageController.delete);
+// Metadata-based restore: uses public_id stored in Supabase to call Cloudinary backup API
+router.post(
+  "/images/:id/restore",
+  authenticateUser,
+  ImageController.restoreFromMetadata,
+);
+// Legacy restore (deprecated)
 router.post("/restore/:filename", ImageController.restore);
 
 // Sharing System

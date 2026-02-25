@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "reindex": "node scripts/reindex_ai.js",
+    "migrate:storage": "node scripts/migrateToSupabaseStorage.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

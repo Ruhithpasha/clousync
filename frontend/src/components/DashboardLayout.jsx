@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Image as ImageIcon, 
-  FolderOpen, 
-  Settings, 
-  LogOut, 
-  Menu, 
-  X, 
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Image as ImageIcon,
+  FolderOpen,
+  Settings,
+  LogOut,
+  Menu,
+  X,
   Plus,
   Cloud,
   Sparkles,
@@ -18,12 +18,13 @@ import {
   Sun,
   Moon,
   Zap,
-  Heart
-} from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { supabase } from '../lib/supabaseClient';
-import OnboardingTour from './OnboardingTour';
+  Heart,
+  RefreshCw,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { supabase } from "../lib/supabaseClient";
+import OnboardingTour from "./OnboardingTour";
 
 const DashboardLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -38,19 +39,39 @@ const DashboardLayout = ({ children }) => {
   }, []);
 
   const menuItems = [
-    { icon: <LayoutDashboard size={20} />, label: "Overview", path: "/cloudinary" },
-    { icon: <ImageIcon size={20} />, label: "Library", path: "/local" }, 
-    { icon: <Zap size={20} className="text-[#FFC107]" />, label: "AI Search", path: "/ai-search" },
-    { icon: <Heart size={20} className="text-pink-500" />, label: "Memories", path: "/memories" },
+    {
+      icon: <LayoutDashboard size={20} />,
+      label: "Overview",
+      path: "/cloudinary",
+    },
+    { icon: <ImageIcon size={20} />, label: "Library", path: "/local" },
+    {
+      icon: <Zap size={20} className="text-[#FFC107]" />,
+      label: "AI Search",
+      path: "/ai-search",
+    },
+    {
+      icon: <Heart size={20} className="text-pink-500" />,
+      label: "Memories",
+      path: "/memories",
+    },
+    {
+      icon: <RefreshCw size={20} className="text-emerald-400" />,
+      label: "Restoration",
+      path: "/restoration",
+    },
     { icon: <Sparkles size={20} />, label: "Explore", path: "/explore" },
     { icon: <FolderOpen size={20} />, label: "Albums", path: "/albums" },
     { icon: <Settings size={20} />, label: "Settings", path: "/settings" },
   ];
 
   if (profile?.is_admin) {
-    menuItems.push({ icon: <ShieldCheck size={20} />, label: "Admin", path: "/admin" });
+    menuItems.push({
+      icon: <ShieldCheck size={20} />,
+      label: "Admin",
+      path: "/admin",
+    });
   }
-
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -62,7 +83,7 @@ const DashboardLayout = ({ children }) => {
       <div className="absolute inset-0 bg-grid pointer-events-none opacity-40 z-0" />
 
       {/* Sidebar */}
-      <motion.aside 
+      <motion.aside
         initial={false}
         animate={{ width: isSidebarOpen ? 280 : 80 }}
         className="relative z-20 bg-[#000B2B] h-screen flex flex-col transition-all duration-300 shadow-2xl"
@@ -74,7 +95,7 @@ const DashboardLayout = ({ children }) => {
           </div>
           <AnimatePresence>
             {isSidebarOpen && (
-              <motion.span 
+              <motion.span
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
@@ -93,15 +114,15 @@ const DashboardLayout = ({ children }) => {
               key={item.path}
               to={item.path}
               className={`flex items-center gap-4 px-4 py-4 rounded-2xl transition-all group relative ${
-                location.pathname === item.path 
-                ? 'bg-[#FFC107] text-[#000B2B]' 
-                : 'text-white/40 hover:text-white hover:bg-white/5'
+                location.pathname === item.path
+                  ? "bg-[#FFC107] text-[#000B2B]"
+                  : "text-white/40 hover:text-white hover:bg-white/5"
               }`}
             >
               <div className="flex-shrink-0">{item.icon}</div>
               <AnimatePresence>
                 {isSidebarOpen && (
-                  <motion.span 
+                  <motion.span
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
@@ -112,7 +133,7 @@ const DashboardLayout = ({ children }) => {
                 )}
               </AnimatePresence>
               {location.pathname === item.path && isSidebarOpen && (
-                <motion.div 
+                <motion.div
                   layoutId="active-pill"
                   className="absolute right-4 w-1.5 h-1.5 bg-[#000B2B] rounded-full"
                 />
@@ -127,23 +148,31 @@ const DashboardLayout = ({ children }) => {
             <div className="px-4 py-4 mb-4 bg-white/5 rounded-2xl flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FFC107] to-purple-500 overflow-hidden border-2 border-white/10 flex items-center justify-center">
                 {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  <img
+                    src={profile.avatar_url}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <User size={20} className="text-white/40" />
                 )}
               </div>
               <div className="overflow-hidden">
                 <p className="text-white text-sm font-extrabold truncate">
-                  {profile?.username || user?.email?.split('@')[0]}
+                  {profile?.username || user?.email?.split("@")[0]}
                 </p>
                 <p className="text-white/40 text-xs font-bold truncate">
-                  {profile?.plan ? profile.plan.charAt(0) + profile.plan.slice(1).toLowerCase() : 'Free'} Plan
+                  {profile?.plan
+                    ? profile.plan.charAt(0) +
+                      profile.plan.slice(1).toLowerCase()
+                    : "Free"}{" "}
+                  Plan
                 </p>
               </div>
             </div>
           )}
-          
-          <button 
+
+          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-all group"
           >
@@ -153,7 +182,7 @@ const DashboardLayout = ({ children }) => {
         </div>
 
         {/* Collapse Toggle */}
-        <button 
+        <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="absolute -right-3 top-20 w-6 h-6 bg-[#FFC107] text-[#000B2B] rounded-full flex items-center justify-center shadow-lg border-2 border-[#000B2B] hover:scale-110 transition-transform"
         >
@@ -167,22 +196,27 @@ const DashboardLayout = ({ children }) => {
         <header className="flex justify-between items-center mb-12">
           <div>
             <h2 className="text-4xl font-extrabold text-[#000B2B] dark:text-white tracking-tight mb-1">
-              {menuItems.find(i => i.path === location.pathname)?.label || "Dashboard"}
+              {menuItems.find((i) => i.path === location.pathname)?.label ||
+                "Dashboard"}
             </h2>
             <p className="text-[#000B2B]/40 dark:text-white/40 font-bold uppercase tracking-widest text-xs">
               Welcome back to your digital cloud
             </p>
           </div>
-          
+
           <div className="flex gap-4">
-            <button 
+            <button
               onClick={toggleDarkMode}
               className="bg-white dark:bg-[#1e293b] p-3 rounded-2xl border border-[#000B2B]/5 dark:border-white/5 shadow-soft hover:shadow-md transition-all text-[#000B2B] dark:text-white"
             >
-              {isDarkMode ? <Sun className="w-6 h-6 text-[#FFC107]" /> : <Moon className="w-6 h-6" />}
+              {isDarkMode ? (
+                <Sun className="w-6 h-6 text-[#FFC107]" />
+              ) : (
+                <Moon className="w-6 h-6" />
+              )}
             </button>
             <button className="bg-white dark:bg-[#1e293b] p-3 rounded-2xl border border-[#000B2B]/5 dark:border-white/5 shadow-soft hover:shadow-md transition-all">
-                <Menu className="w-6 h-6 text-[#000B2B] dark:text-white" />
+              <Menu className="w-6 h-6 text-[#000B2B] dark:text-white" />
             </button>
           </div>
         </header>

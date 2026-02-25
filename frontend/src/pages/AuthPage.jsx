@@ -1,25 +1,35 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../lib/supabaseClient';
-import { Mail, Lock, User, ArrowRight, Upload } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "../lib/supabaseClient";
+import {
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  Upload,
+  Eye,
+  EyeOff,
+  X,
+} from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!authLoading && user) {
-      navigate('/cloudinary');
+      navigate("/cloudinary");
     }
   }, [user, authLoading, navigate]);
 
@@ -43,39 +53,45 @@ const AuthPage = () => {
         if (error) throw error;
 
         // Check if MFA is required
-        const { data: aal, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        const { data: aal, error: aalError } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (aalError) throw aalError;
 
-        if (aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
-            const factors = await supabase.auth.mfa.listFactors();
-            if (factors.error) throw factors.error;
-            
-            const totpFactor = factors.data.all.find(f => f.factor_type === 'totp' && f.status === 'verified');
-            if (totpFactor) {
-                setMfaFactorId(totpFactor.id);
-                setShowMfa(true);
-                setLoading(false);
-                return; // Stop here to show MFA UI
-            }
+        if (aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+          const factors = await supabase.auth.mfa.listFactors();
+          if (factors.error) throw factors.error;
+
+          const totpFactor = factors.data.all.find(
+            (f) => f.factor_type === "totp" && f.status === "verified",
+          );
+          if (totpFactor) {
+            setMfaFactorId(totpFactor.id);
+            setShowMfa(true);
+            setLoading(false);
+            return; // Stop here to show MFA UI
+          }
         }
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin + '/auth',
+            emailRedirectTo: window.location.origin + "/auth",
             data: {
               username: username,
-            }
-          }
+            },
+          },
         });
         if (error) throw error;
-        setToast({ message: 'Verification email sent! Please check your inbox.', type: 'info' });
+        setToast({
+          message: "Verification email sent! Please check your inbox.",
+          type: "info",
+        });
         setIsLogin(true); // Switch to login mode so they can sign in after verifying
         setLoading(false);
         return;
       }
-      navigate('/cloudinary');
+      navigate("/cloudinary");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -86,25 +102,27 @@ const AuthPage = () => {
   const handleMfaVerify = async (e) => {
     e.preventDefault();
     try {
-        setIsVerifyingMfa(true);
-        setError(null);
+      setIsVerifyingMfa(true);
+      setError(null);
 
-        const challenge = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
-        if (challenge.error) throw challenge.error;
+      const challenge = await supabase.auth.mfa.challenge({
+        factorId: mfaFactorId,
+      });
+      if (challenge.error) throw challenge.error;
 
-        const verify = await supabase.auth.mfa.verify({
-            factorId: mfaFactorId,
-            challengeId: challenge.data.id,
-            code: mfaCode
-        });
+      const verify = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.data.id,
+        code: mfaCode,
+      });
 
-        if (verify.error) throw verify.error;
+      if (verify.error) throw verify.error;
 
-        navigate('/cloudinary');
+      navigate("/cloudinary");
     } catch (err) {
-        setError(err.message);
+      setError(err.message);
     } finally {
-        setIsVerifyingMfa(false);
+      setIsVerifyingMfa(false);
     }
   };
 
@@ -112,8 +130,8 @@ const AuthPage = () => {
     <div className="min-h-screen bg-[#F7F7F7] font-['Plus_Jakarta_Sans'] flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 bg-grid pointer-events-none opacity-40" />
-      
-      <motion.div 
+
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md relative z-10"
@@ -125,114 +143,132 @@ const AuthPage = () => {
               <Upload className="w-8 h-8 text-[#FFC107]" />
             </div>
             <h1 className="text-3xl font-[800] text-[#000B2B] tracking-tighter">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
+              {isLogin ? "Welcome Back" : "Create Account"}
             </h1>
             <p className="text-[#000B2B]/40 font-semibold mt-2">
-              {isLogin ? 'Sign in to CloudSync Pro' : 'Start your cloud journey today'}
+              {isLogin
+                ? "Sign in to CloudSync Pro"
+                : "Start your cloud journey today"}
             </p>
           </div>
 
-          <form onSubmit={showMfa ? handleMfaVerify : handleAuth} className="space-y-4">
+          <form
+            onSubmit={showMfa ? handleMfaVerify : handleAuth}
+            className="space-y-4"
+          >
             <AnimatePresence mode="wait">
               {showMfa ? (
-                  <motion.div
-                    key="mfa"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="space-y-6"
-                  >
-                        <div className="text-center">
-                            <p className="text-[#000B2B]/40 font-bold uppercase tracking-widest text-[10px] mb-4">Enter your security code</p>
-                            <input
-                                type="text"
-                                maxLength={6}
-                                value={mfaCode}
-                                onChange={(e) => setMfaCode(e.target.value)}
-                                placeholder="000000"
-                                className="w-full bg-[#F7F7F7] border-none rounded-3xl py-6 px-4 text-center text-4xl font-black tracking-[0.8em] text-[#000B2B] focus:ring-2 focus:ring-[#FFC107] outline-none"
-                                autoFocus
-                            />
-                        </div>
-                        
-                        <button
-                            type="submit"
-                            disabled={isVerifyingMfa || mfaCode.length !== 6}
-                            className="w-full bg-[#000B2B] text-white py-5 rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2 hover:bg-[#000B2B]/90 transition-all active:scale-95 disabled:opacity-50 shadow-xl"
-                        >
-                            {isVerifyingMfa ? 'Verifying...' : 'Verify & Continue'}
-                            {!isVerifyingMfa && <ArrowRight className="w-5 h-5" />}
-                        </button>
+                <motion.div
+                  key="mfa"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-6"
+                >
+                  <div className="text-center">
+                    <p className="text-[#000B2B]/40 font-bold uppercase tracking-widest text-[10px] mb-4">
+                      Enter your security code
+                    </p>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value)}
+                      placeholder="000000"
+                      className="w-full bg-[#F7F7F7] border-none rounded-3xl py-6 px-4 text-center text-4xl font-black tracking-[0.8em] text-[#000B2B] focus:ring-2 focus:ring-[#FFC107] outline-none"
+                      autoFocus
+                    />
+                  </div>
 
-                        <button 
-                            type="button"
-                            onClick={() => setShowMfa(false)}
-                            className="w-full text-[#000B2B]/40 font-bold text-xs uppercase tracking-widest hover:text-[#000B2B]"
-                        >
-                            Back to sign in
-                        </button>
-                  </motion.div>
+                  <button
+                    type="submit"
+                    disabled={isVerifyingMfa || mfaCode.length !== 6}
+                    className="w-full bg-[#000B2B] text-white py-5 rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2 hover:bg-[#000B2B]/90 transition-all active:scale-95 disabled:opacity-50 shadow-xl"
+                  >
+                    {isVerifyingMfa ? "Verifying..." : "Verify & Continue"}
+                    {!isVerifyingMfa && <ArrowRight className="w-5 h-5" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowMfa(false)}
+                    className="w-full text-[#000B2B]/40 font-bold text-xs uppercase tracking-widest hover:text-[#000B2B]"
+                  >
+                    Back to sign in
+                  </button>
+                </motion.div>
               ) : (
                 <motion.div key="auth" className="space-y-4">
-                    <AnimatePresence mode="wait">
+                  <AnimatePresence mode="wait">
                     {!isLogin && (
-                        <motion.div
+                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
+                        animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        >
+                      >
                         <div className="relative">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#000B2B]/30" />
-                            <input
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#000B2B]/30" />
+                          <input
                             type="text"
                             placeholder="Username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             className="w-full bg-[#F7F7F7] border-none rounded-2xl py-4 pl-12 pr-4 font-bold text-[#000B2B] focus:ring-2 focus:ring-[#FFC107] outline-none transition-all"
                             required={!isLogin}
-                            />
+                          />
                         </div>
-                        </motion.div>
+                      </motion.div>
                     )}
-                    </AnimatePresence>
+                  </AnimatePresence>
 
-                    <div className="relative">
+                  <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#000B2B]/30" />
                     <input
-                        type="email"
-                        placeholder="Email Address"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-[#F7F7F7] border-none rounded-2xl py-4 pl-12 pr-4 font-bold text-[#000B2B] focus:ring-2 focus:ring-[#FFC107] outline-none transition-all"
-                        required
+                      type="email"
+                      placeholder="Email Address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-[#F7F7F7] border-none rounded-2xl py-4 pl-12 pr-4 font-bold text-[#000B2B] focus:ring-2 focus:ring-[#FFC107] outline-none transition-all"
+                      required
                     />
-                    </div>
+                  </div>
 
-                    <div className="relative">
+                  <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#000B2B]/30" />
                     <input
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-[#F7F7F7] border-none rounded-2xl py-4 pl-12 pr-4 font-bold text-[#000B2B] focus:ring-2 focus:ring-[#FFC107] outline-none transition-all"
-                        required
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-[#F7F7F7] border-none rounded-2xl py-4 pl-12 pr-12 font-bold text-[#000B2B] focus:ring-2 focus:ring-[#FFC107] outline-none transition-all"
+                      required
                     />
-                    </div>
-
-                    {error && (
-                    <p className="text-red-500 text-sm font-bold text-center bg-red-50 p-3 rounded-xl border border-red-100 italic">
-                        {error}
-                    </p>
-                    )}
-
                     <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-[#000B2B] text-white py-5 rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2 hover:bg-[#000B2B]/90 transition-all active:scale-95 disabled:opacity-50 mt-6 shadow-xl"
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#000B2B]/30 hover:text-[#000B2B] transition-colors"
                     >
-                        {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
-                        {!loading && <ArrowRight className="w-5 h-5" />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
+                  </div>
+
+                  {error && (
+                    <p className="text-red-500 text-sm font-bold text-center bg-red-50 p-3 rounded-xl border border-red-100 italic">
+                      {error}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[#000B2B] text-white py-5 rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2 hover:bg-[#000B2B]/90 transition-all active:scale-95 disabled:opacity-50 mt-6 shadow-xl"
+                  >
+                    {loading
+                      ? "Processing..."
+                      : isLogin
+                        ? "Sign In"
+                        : "Sign Up"}
+                    {!loading && <ArrowRight className="w-5 h-5" />}
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -246,31 +282,31 @@ const AuthPage = () => {
               onClick={() => setIsLogin(!isLogin)}
               className="ml-2 text-[#000B2B] hover:underline"
             >
-              {isLogin ? 'Create one now' : 'Sign In'}
+              {isLogin ? "Create one now" : "Sign In"}
             </button>
           </div>
         </div>
 
         {/* Admin Link & Home Button */}
         <div className="mt-8 flex flex-col items-center gap-4">
-            <Link 
-              to="/admin-auth"
-              className="text-xs font-bold text-[#000B2B]/20 uppercase tracking-widest hover:text-[#FFC107] transition-colors"
-            >
-              Admin Portal Access
-            </Link>
-            <button 
-                onClick={() => navigate('/')}
-                className="text-xs font-extrabold text-[#000B2B]/30 uppercase tracking-[0.2em] hover:text-[#000B2B] transition-colors"
-            >
-                ← Back to Home
-            </button>
+          <Link
+            to="/admin-auth"
+            className="text-xs font-bold text-[#000B2B]/20 uppercase tracking-widest hover:text-[#FFC107] transition-colors"
+          >
+            Admin Portal Access
+          </Link>
+          <button
+            onClick={() => navigate("/")}
+            className="text-xs font-extrabold text-[#000B2B]/30 uppercase tracking-[0.2em] hover:text-[#000B2B] transition-colors"
+          >
+            ← Back to Home
+          </button>
         </div>
 
         {/* Premium Toast Notification */}
         <AnimatePresence>
           {toast && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -280,10 +316,17 @@ const AuthPage = () => {
                 <Mail size={18} />
               </div>
               <div className="flex-grow text-left">
-                <p className="text-sm font-black uppercase tracking-widest">Email Sent</p>
-                <p className="text-xs font-bold text-[#000B2B]/40">{toast.message}</p>
+                <p className="text-sm font-black uppercase tracking-widest">
+                  Email Sent
+                </p>
+                <p className="text-xs font-bold text-[#000B2B]/40">
+                  {toast.message}
+                </p>
               </div>
-              <button onClick={() => setToast(null)} className="text-[#000B2B]/20 hover:text-[#000B2B] transition-colors">
+              <button
+                onClick={() => setToast(null)}
+                className="text-[#000B2B]/20 hover:text-[#000B2B] transition-colors"
+              >
                 <X className="w-4 h-4" />
               </button>
             </motion.div>
