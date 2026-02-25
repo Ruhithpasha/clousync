@@ -36,6 +36,15 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // FIX: Skip service worker for API calls and non-GET requests
+  if (
+    url.pathname.startsWith("/api") ||
+    url.port === "3002" ||
+    request.method !== "GET"
+  ) {
+    return;
+  }
+
   // Special handling for Cloudinary images (Cache thumbnails)
   if (url.hostname.includes("cloudinary.com")) {
     event.respondWith(
