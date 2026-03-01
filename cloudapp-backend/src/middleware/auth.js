@@ -1,26 +1,52 @@
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error("❌ CRITICAL: Supabase credentials missing in environment!");
+  console.error(
+    "Please check your .env file or docker-compose.yml environment section.",
+  );
+} else {
+  console.log(
+    "✅ Supabase initialized for Auth (URL: " +
+      supabaseUrl.substring(0, 20) +
+      "...)",
+  );
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const authenticateUser = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
+    console.warn(`[Auth] 401: No header for ${req.method} ${req.url}`);
     return res.status(401).json({ error: "No authorization header provided" });
   }
 
   const token = authHeader.split(" ")[1];
-  const { data, error } = await supabase.auth.getUser(token);
-
-  if (error || !data.user) {
-    return res.status(401).json({ error: "Invalid or expired session" });
+  if (!token) {
+    console.warn(`[Auth] 401: Invalid header format for ${req.url}`);
+    return res.status(401).json({ error: "No token provided" });
   }
 
-  req.user = data.user;
-  next();
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+      console.error(`[Auth] 401 Reject: ${error?.message || "User not found"}`);
+      console.error(`[Auth] Token hint: ${token.substring(0, 15)}...`);
+      return res.status(401).json({ error: "Invalid or expired session" });
+    }
+
+    req.user = data.user;
+    next();
+  } catch (err) {
+    console.error(`[Auth] 500 Error: ${err.message}`);
+    return res.status(500).json({ error: "Auth internal error" });
+  }
 };
 
 // Simple memory cache for admin status (1 minute TTL)
