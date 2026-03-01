@@ -6,15 +6,14 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error("❌ CRITICAL: Supabase credentials missing in environment!");
-  console.error(
-    "Please check your .env file or docker-compose.yml environment section.",
-  );
 } else {
-  console.log(
-    "✅ Supabase initialized for Auth (URL: " +
-      supabaseUrl.substring(0, 20) +
-      "...)",
-  );
+  console.log(`✅ Supabase initialized for Auth`);
+  console.log(`   URL: [${supabaseUrl}]`);
+  if (!supabaseUrl.startsWith("https://")) {
+    console.warn(
+      "   ⚠️ WARNING: SUPABASE_URL does not start with https://. This will cause 401s!",
+    );
+  }
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -36,8 +35,16 @@ const authenticateUser = async (req, res, next) => {
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      console.error(`[Auth] 401 Reject: ${error?.message || "User not found"}`);
-      console.error(`[Auth] Token hint: ${token.substring(0, 15)}...`);
+      const msg = error?.message || "User not found";
+      console.error(`[Auth] 401 Reject: ${msg}`);
+
+      // If we got an HTML response error, it usually means the URL is wrong
+      if (msg.includes("Unexpected token") || msg.includes("DOCTYPE")) {
+        console.error(
+          "   🚨 CLUE: The backend received HTML instead of JSON. Check if SUPABASE_URL is correct in the server's .env!",
+        );
+      }
+
       return res.status(401).json({ error: "Invalid or expired session" });
     }
 
@@ -45,6 +52,14 @@ const authenticateUser = async (req, res, next) => {
     next();
   } catch (err) {
     console.error(`[Auth] 500 Error: ${err.message}`);
+    if (
+      err.message.includes("Unexpected token") ||
+      err.message.includes("JSON")
+    ) {
+      console.error(
+        "   🚨 CLUE: Supabase URL might be pointing to a web page instead of an API!",
+      );
+    }
     return res.status(500).json({ error: "Auth internal error" });
   }
 };
